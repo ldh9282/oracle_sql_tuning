@@ -1,0 +1,74 @@
+-- =============================================================================
+-- index access path 
+-- =============================================================================
+-- 1. index fast full scan
+-- index fast full scan 은 대부분의 상황에서 index full scan 보다 빠름(그러나 예외있음)
+-- index full scan은 블럭단위로 순서적으로 읽어들이고
+-- index full scan은 여러 블럭을 동시에 읽기들임
+
+-- 순서가 있는 order by(sort; 정렬) 과 관련 있을 때는 index full scan 이 된다
+-- 순서와 관련이 없을 때는 옵티마이저에 따라 index fast full scan 이 될 수 있음
+
+-- 인덱스가 없는 컬럼을 select에서 가져올 때 index full scan 이 일어나고
+-- 인덱스가 있는 컬럼만 select에서 가져올 때 index fast full scan이 일어날 수 있음
+
+-- 혹은 옵티마이저의 마음
+
+-- 대충 3개의 원인이 복합적으로 작용함. 
+-- index full scan 혹은 index fast full scan 이 일어날지는 솔직히 예상불가임.
+-- =============================================================================
+-- 인덱스 없는 컬럼도 가져올때
+-- index full scan
+select *
+from employees e, departments d
+where e.department_id = d.department_id;
+-- 인덱스 있는 컬럼만 가져올때
+-- index fast full scan
+select e.employee_id, d.department_id
+from employees e, departments d
+where e.department_id = d.department_id;
+-- 인덱스 있는 컬럼만 가져오지만 정렬할 때
+-- index full scan
+select e.employee_id, d.department_id
+from employees e, departments d
+where e.department_id = d.department_id
+order by e.employee_id;
+-- =============================================================================
+-- 2. index skip scan
+-- where 절의 인덱스 컬럼이 복합키 인덱스이면서 그리고 인덱스 포지션이 1이 아닐 때 일어남
+-- index skip scan 의 용도는 복합키 인덱스의 기믹에서 나타남
+-- =============================================================================
+-- 복합키 인덱스이면서 non-unique 인덱스, 인덱스 포지션이 1이 아닌 경우이면서 = 을 쓸 때
+-- index skip scan 이 일어남
+select * from employees where first_name = 'Alex';
+-- 그러나 인덱스 포지션이 1이 경우이면서 = 을 쓸 때에는
+-- index range scan 이 일어남
+-- index unique scan 이 아니라 index range scan 로 나오는 이유는
+-- name 복합키 인덱스는 unique 인덱스가 아니라서 = 을 쓸 때 여러행이 나올 수 있고
+-- 그래서 index range scan 임
+select * from employees where last_name = 'King';
+-- 마찬가지로 job_id는 unique 인덱스가 아니라 index range scan
+select * from employees where job_id = 'PU_MAN';
+-- =============================================================================
+-- 3. index join scan
+-- combination of multiple indexes in select clause
+-- hash join
+-- =============================================================================
+-- index join scan with two indexes
+select employee_id, email from employees;
+-- index join scan with two indexes, but with range scan included
+select last_name, email from employees where last_name like 'B%';
+-- 인덱스가 없는 컬럼을 select 할 때는 index join scan 이 일어나지 않고
+-- full table scan
+select * from employees;
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

@@ -1,0 +1,67 @@
+-- =============================================================================
+-- index access path 
+-- =============================================================================
+-- 1. index unique scan (one row; = will use index unique scan)
+-- =============================================================================
+select * from employees where employee_id = 55;
+-- =============================================================================
+-- 2. index range scan (multiple rows; >, < will use idex range scan)
+
+-- 일반적으로 ascending index이지만 descending index 또한 생성할 수 있음
+-- UNIQUE INDEX 혹은 NON UNIQUE INDEX 상관없이 index range scan을 함
+-- id는 unique할 수 있지만, name 같은 건 non unique index로 보통 만듬
+
+-- 와일드카드를 쓸때 index range scan이 수행될 수도 있고 안 될 수도 있음
+-- where column like 'A%' 은 index range scan을 하지만
+-- where column like '%A' 은 하지 않음
+-- 와일드카드를 문자열보다 먼저 쓰이면 index range scan을 하지 않는다는 것임
+-- =============================================================================
+-- 범위를 포함하는 where절 + 인덱스 있는 컬럼 = index range sacn
+select * from employees where employee_id > 190;
+-- 범위를 포함하는 where절 + 인덱스 있는 컬럼 = index range sacn
+select * from employees where department_id between 100 and 120;
+-- salary 에 대한 인덱스가 없어서 index range scan 안하고 full table scan이 일어남
+select * from employees where salary between 4500 and 5000;
+-- salary에 대한 인덱스를 추가하면
+create index emp_salary_ix on employees (salary);
+-- 이제 salary 에 대한 인덱스가 있으니 index range scan가 일어남
+select * from employees where salary between 4500 and 5000;
+-- 결과 봤으니까 인덱스 삭제하고
+drop index emp_salary_ix;
+-- 이게 문제가 뭐냐면 index range scan을 하기는 하는데
+-- index range scan 전에 order by(정렬;sort)를 수행하는데 
+-- 보시다시피 salary에는 인덱스가 없음
+-- order by의 cpu cost가 장난아님
+-- (order by cpu cost: 11271638, index range scan: 10521) 
+select * from employees where employee_id > 190 order by salary;
+-- 근데 index를 사용하는 컬럼으로 정렬하면 sort하는데 별다른 코스트 없이 정렬됨
+-- index range scan
+select * from employees where employee_id > 190 order by employee_id;
+-- 역방향 sort도 마찬가지
+-- index range scan descending
+select * from employees where employee_id > 190 order by employee_id desc;
+-- 와일드카드를 무조건 문자열 뒤에 써야만 index range scan
+select * from employees where email like 'A%';
+-- 와일드카드를 문자열 앞에 쓰면 index range scan 안 일어나고 full table scan
+select * from employees where email like '%A';
+-- 당연히 이것도 풀테이블 스캔
+select * from employees where email like '%A%';
+-- =============================================================================
+-- 만들어진 인덱스 조회방법
+-- index_type 컬럼: normal 이면 b-tree index, bitmap은 bitmap이라 표시됨
+-- uniquness 컬럼: UNIQUE 혹은 NONUNIQUE 구분
+select * from all_indexes where owner = 'HR' and table_name = 'EMPLOYEES';
+-- 인덱스가 적용되는 컬럼을 보려면 all_ind_columns 테이블하고 조인해야함
+-- 보통 인덱스 명칭에 컬럼을 써주기는 하면 대충 예상가지만 정확한 컬럼대상을 확인하려면
+-- 이렇게 해야함 (ANSI 조인인데 오라클 조인도 문제없음)
+-- ANSI 조인버전
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- 오라클 조인버전
+select c.column_name, i.*
+from all_indexes i
+inner join all_ind_columns c
+on i.index_name = c.index_name
+where i.owner = 'HR' and i.table_name = 'EMPLOYEES';
