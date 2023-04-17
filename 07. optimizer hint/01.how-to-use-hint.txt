@@ -1,0 +1,118 @@
+-- =============================================================================
+-- Optimizer Hints
+-- =============================================================================
+-- 우리가 옵티마이저 힌트를 쓰면 옵티마이저에게 특정 액션을 강제를 하나
+-- 옵티마이저는 때때로 힌트를 무시하고 따르지 않을 수도 있음
+-- 옵티마이저는 특정 테이블 혹은 멀티 테이블에도 적용가능
+-- select /*+ hint_name(p1 p2 p3...) */ first_name from employees;
+-- 힌트는 select, update or delete 키워드 다음에 사용할 수 있음
+-- 힌트 파라미터에는 테이블 이름이나 별칭이 가능하지만 이미 별칭이 존재하면
+-- 테이블 이름을 사용할 수 없음
+-- 힌트를 잘못 사용하면 성능이 나빠질 수 있으니 테이블 구조를 잘 알고 사용해야함
+-- =============================================================================
+-- 힌트를 안 썼을 때 index range scan 을 사용함
+select employee_id, last_name from employees e
+where last_name like 'A%';
+-- full table scan 힌트를 썼을 때
+-- 물론 cpu cost는 더 나쁨
+select /*+ full(e)*/ employee_id, last_name from employees e
+where last_name like 'A%';
+-- 마찬가지로 full table scan
+-- 별칭 대신에 테이블 이름을 힌트 파라미터로 사용가능
+select /*+ full(employees)*/ employee_id, last_name from employees
+where last_name like 'A%';
+-- 힌트가 먹지 않아 index range scan
+-- 그러나 이미 별칭이 존재하면 테이블 이름을 힌트 파라미터로 사용할 수 없음
+select /*+ full(employees)*/ employee_id, last_name from employees e
+where last_name like 'A%';
+-- 인덱스를 잘못 썼을 때 타입이 일치하지 않으면 옵티마이저는 힌트를 무시함
+select /*+ index(e emp_department_ix)*/ employee_id, last_name from employees e
+where last_name like 'A%';
+-- 인덱스를 잘못 썼을 때 타입이 일치하면 합리적이지 않더라도 옵티마이저 힌트는 강제될 수 있음
+-- 이런게 의도치 않게 성능저하가 발생할 수 있음
+select /*+ index(e emp_email_uk)*/ employee_id, last_name from employees e
+where last_name like 'A%';
+-- 여러개 힌트를 동시에 사용하면 옵티마이저는 성능이 더 좋은 선택을 함
+select /*+ index(e emp_name_ix) full(e)*/ employee_id, last_name from employees e
+where last_name like 'A%';
+-- 힌트의 순서를 바꾸어도 무관하게 옵티마이저는 성능이 더 좋은 선택을 함
+select /*+ full(e) index(e emp_name_ix)*/ employee_id, last_name from employees e
+where last_name like 'A%';
+-- =============================================================================
+-- full table access 를 하는 순서는 departments -> employees
+select
+    e.department_id, d.department_name,
+    max(salary), avg(salary)
+from employees e, departments d
+where e.department_id = e.department_id
+group by e.department_id, d.department_name;
+-- 힌트를 통해 access 순서를 바꿀 수도 있음
+select /*+ leading(e d) */
+    e.department_id, d.department_name,
+    max(salary), avg(salary)
+from employees e, departments d
+where e.department_id = e.department_id
+group by e.department_id, d.department_name;
+-- 세 개의 힌트가 모두 적용되는 것을 볼 수 있음
+-- leading 힌트는 엑세스하는 순서에 관한 힌트고
+-- 엑세스가 e와 d 총 2개라서 인덱스가 2개가 각각 사용됨
+-- 이 과정에서 옵티마이저는 e의 엑세스에 적합한 인덱스를 성능에 따라 찾아주고
+-- d의 엑세스에 적합한 인덱스를 찾아줌
+select /*+ leading(e d) index(d dept_id_pk) index(e emp_department_ix) */
+    e.department_id, d.department_name,
+    max(salary), avg(salary)
+from employees e, departments d
+where e.department_id = e.department_id
+group by e.department_id, d.department_name;
+-- 힌트의 순서를 바꾸어줘도 결과는 동일
+select /*+ leading(e d) index(e emp_department_ix) index(d dept_id_pk) */
+    e.department_id, d.department_name,
+    max(salary), avg(salary)
+from employees e, departments d
+where e.department_id = e.department_id
+group by e.department_id, d.department_name;
+-- 힌트의 순서를 바꾸워줘도 결과는 동일2
+select /*+ index(e emp_department_ix) leading(e d) index(d dept_id_pk) */
+    e.department_id, d.department_name,
+    max(salary), avg(salary)
+from employees e, departments d
+where e.department_id = e.department_id
+group by e.department_id, d.department_name;
+-- 힌트의 순서를 바꾸워줘도 결과는 동일3
+select /*+ index(e emp_department_ix) index(d dept_id_pk) leading(e d) */
+    e.department_id, d.department_name,
+    max(salary), avg(salary)
+from employees e, departments d
+where e.department_id = e.department_id
+group by e.department_id, d.department_name;
+-- =============================================================================
+-- access path 는 2개임
+-- 힌트를 안 썼을때
+-- department_id 에 대해서 table access(by index rowid)
+-- job_id 에 대해서 index range access
+select 
+    employee_id, last_name
+from employees e
+where job_id = 'SA_MAN'
+and department_id < 90;
+-- 힌트를 썼을 때
+-- job_id는 table access (by index rowid) 를 함
+-- department_id 는 index range access 를 하고
+-- 결과적으로 힌트를 썼으나 옵티마이저의 선택을 강제하면서 성능은 더 나빠짐
+-- access path 가 여러개면 힌트를 쓸 때 주의해야함
+select /*+ index(e emp_department_ix) */
+    employee_id, last_name
+from employees e
+where job_id = 'SA_MAN'
+and department_id < 90;
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';
