@@ -1,0 +1,36 @@
+-- =============================================================================
+-- cluster tables
+-- join 을 자주하는 테이블들을 join 대신에 연결테이블로 애초에 만드는
+-- cluster table 이 있는 거 같음
+
+-- 근데 프로그래머의 역할이 아니라 DBA 의 역할이라 그냥 개념만 알아두자
+-- cluster 의 타입
+-- index clusters : (sort merge join?)
+-- hash clusters : (hash join?)
+
+-- 클러스트를 만들고
+-- 클러스트에 연결할 첫번째 테이블을 만들고
+-- 연결할 두번째 테이블을 만드는 걸로 보임
+
+-- 그렇게 했을때 클러스트를 안만들고 조인했을 때 cost 가 4이면
+-- 클러스트를 만들고 동일한 결과를 보았을 때 cost 가 거의 0임
+-- 대신에 공간 소모가 크다는 단점이 있어서 매번 사용하지 않음
+
+-- 그리고 = 이 아니라 비교연산자를 사용했을 때 cost 가 143 임 (매우 높음)
+-- 또한 조건절 없이 full table scan 할 때도 cost 가 143 임
+-- 클러스터 테이블이란 게 잘못 사용하면 성능에 안좋을 수도 있다는것임
+-- DBA 관할이기도 하고 사용처가 한정적이라 굳이 사용할 필요성을 못 느끼겠음.
+-- =============================================================================
+
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

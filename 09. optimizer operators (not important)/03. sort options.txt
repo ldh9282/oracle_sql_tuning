@@ -1,0 +1,49 @@
+-- =============================================================================
+-- sort options
+-- (실행계획에서 sort 가 확인되지만 order  by를 쓰지 않으면 순서를 보장하진 않음)
+-- sort unique (distinct 썼는데 인덱스를 사용할 때)
+-- hash unique (distinct 썼는데 인덱스를 사용하지 않을 때)
+-- sort order by (order by 썼을 때)
+-- sort join (join 했을 때)
+-- sort aggregate  (count, sum 같은 aggregate 함수 썼을 때)
+-- hash group by (group by 만 썼을 때)
+-- sort group by (group by 와 order by 썼을 때)
+-- buffer sort (cartesian join 일 경우)
+-- =============================================================================
+-- sort unique
+select distinct last_name from employees;
+
+-- hash unique
+select distinct first_name from employees;
+
+-- sort order by
+select first_name from employees order by first_name;
+
+-- sort join
+select * from employees e, departments d
+where e.department_id = d.department_id;
+
+-- sort aggregate
+select sum(salary) from employees;
+
+-- hash group by (cost: 4)
+select sum(salary) from employees group by department_id;
+
+-- sort group by (cost: 4)
+-- 이 경우에는 코스트가 같지만
+-- sort group by 가 hash group by 보다 더 높을 수 있음
+select sum(salary) from employees group by department_id order by department_id;
+
+-- buffer sort (cartesian join 일 경우)
+select * from employees e, departments d
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

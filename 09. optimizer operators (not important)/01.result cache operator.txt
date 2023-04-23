@@ -1,0 +1,20 @@
+-- =============================================================================
+-- result cache
+-- result cache is a memory area in SGA (System Global Area)
+-- to store the results of queries for increase the performance
+-- =============================================================================
+-- 이런 게 있다는 개념만 알면 될 듯. 
+-- 굳이 명령어를 통해 result cache 를 확인해볼 필요성을 못 느꼈음
+-- 중요한 건 한번 실행한 쿼리는 result cache 로 공유할 수 있으며
+-- 메모리의 제한이 있기 때문에 이전의 쿼리결과가 free 될 수 있다는 개념자체가 중요한듯
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';
