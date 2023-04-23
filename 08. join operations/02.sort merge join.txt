@@ -1,0 +1,65 @@
+-- =============================================================================
+-- sort merge join
+-- 양쪽 전부 큰 테이블이라 nested loop join 을 고려할 수 없을 때 sort merge join 고려함
+-- 이런 상황에서 index full scan 혹은 index range scan 이 필요한 이유가
+-- data가 이미 인덱스에 의해 sort 되니까 sort merge join 에서 인덱스에 의한 정렬이 절실함
+-- joining keys 가 인덱스에 의해 sort 될 때 sort merge join 이 좋음. 
+-- 만약 이미 양쪽 테이블이 sort 되어 있다면 옵티마이저는 sort merge join을 택하지만
+-- 한쪽이라 정렬되어 있지 않다면 다른 join methods 와 cpu cost를 비교해서 택함
+-- sort merge join 은 nested loop join 과 달리 driving table or inner table이 없음
+-- row source(=table) 가 이미 sort 되었다면 execution plan 에서 sort key 가 없음
+-- 힌트: use_merge(table1 table2)
+-- =============================================================================
+-- sort merge join
+-- joining key 인 department_id 의 인덱스가 양쪽 테이블에 있음
+-- d 테이블은 department_id의 인덱스로 정렬하면서 풀 스캔을 하고
+-- e 테이블은 department_id의 인덱스로 정렬한 뒤 name 인덱스로 인덱스 range scan을 함
+select * from employees e, departments d
+where e.department_id = d.department_id
+and e.last_name like 'K%';
+
+-- 힌트로 nested loop join 을 옵티마이저에게 강요할 수 있음
+-- cost 가 5에서 7로 늘어난 것을 볼 수 있음
+-- joining key 의 인덱스가 양쪽 테이블에 있어서 정렬할 때 인덱스를 옵티마이저가 사용할 수 있으면
+-- nested loop join 보다 sort merge join 이 대게 좋음
+select /*+ use_nl(e d)*/ * from employees e, departments d
+where e.department_id = d.department_id
+and e.last_name like 'K%';
+
+-- joining key 의 인덱스가 양쪽 다 있으니 역시 sort merge join
+select * from employees e, departments d
+where e.department_id = d.department_id
+and d.manager_id > 110;
+
+-- joining key 의 인덱스가 양쪽 다 있으니 역시 sort merge join
+-- 할것 같지만...
+-- 이 경우에는 d 테이블이 manager_id = 110 으로 row source 가 작으니까
+-- nested loop join 을 옵티마이저가 택할 것임
+select * from employees e, departments d
+where e.department_id = d.department_id
+and d.manager_id = 200;
+
+-- 위의 결과를 살펴보면 한쪽 테이블이 매우 작은 상황이라 nested loop join 을 옵티마이저가 선택한 것임
+-- row source(=table) 이 반환하는 row 는 1개 (즉 row source 가 매우 작음)
+-- 옵티마이저가 인덱스를 사용하지 않는다는 것은 닭잡는데 소잡는 칼 쓰지 않는다고 비유를 들 수 있음
+-- 그래서 주의해야할 게 무지성으로 힌트를 사용하면 옵티마이저를 거스르기 때문에 잘 알고 써야함
+select * from departments where manager_id = 200;
+
+-- 굳이 sort merge join 사용할 필요가 없는데
+-- 힌트로 강제할 경우 cost 가 4 에서 6 으로 늘어나는 걸 볼 수 있음
+select /*+ use_merge(e d) */ * from employees e, departments d
+where e.department_id = d.department_id
+and d.manager_id = 200;
+
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

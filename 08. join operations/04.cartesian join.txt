@@ -1,0 +1,26 @@
+-- =============================================================================
+-- cartesian join
+-- 첫번째 테이블의 row와 두번째 테이블의 row와 모든 결합이므로 조인 컨디션을 빠뜨렸을 때 실수로 생기는 조인임. 
+-- 업무에서 사용할 수 없는 조인으로 실행계획에서 볼 때
+-- 매우 높은 코스트를 사용하는 것과 함께 자기가 실수를 저지르는 것을 확인할 수 있음
+-- =============================================================================
+-- cost 41
+-- cartesian 옵션으로 sort merge join 이 일어났는데
+-- buffer sort 를 볼 수 있음
+-- buffer sort 란 index 가 없어서 index 로 sort 할 수 없을 때
+-- 메모리 버퍼에서 sort 하는 것임
+select * from employees e, departments d;
+
+-- cost 6
+select * from employees e, departments d where d.manager_id = 200;
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

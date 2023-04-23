@@ -1,0 +1,68 @@
+-- =============================================================================
+-- semi joins
+-- 조인을 직접하지 않고 서브쿼리에서 간접적으로 사용할 때 semi join 을 사용함
+-- semi join 역시 모든 조인 methods 를 사용할 수 있음
+-- 상황에 따라 옵티마이저는 성능관점에서 semi join 을 선택하지 않을 수도 있음
+-- 서브쿼리에서 semi join 을 사용하더라도 리턴하는 행이 많으면 full table scan 을 함
+-- =============================================================================
+-- semin join
+-- where exists 방식
+select
+    *
+from
+    departments d
+where
+    exists (
+        select
+            1
+        from
+            employees e
+        where
+            d.department_id = e.department_id
+    );
+
+-- semi join
+-- 위랑 결과 똑같음
+-- old 한 방식
+select
+    *
+from
+    departments d
+where
+    department_id in (
+        select
+            department_id
+        from
+            employees e
+        where
+            d.department_id = e.department_id
+    );
+
+
+-- 이 경우에는 semi 조인이 안 일어나는 이유가 결국 서브쿼리의 semi join 이 일어날 적에
+-- 모든 row 에 대해서 true 니까
+-- 옵티마이저가 full table scan 을 택하는 것임
+select
+    *
+from
+    employees e
+where
+    exists (
+        select
+            1
+        from
+            departments d
+        where
+            d.department_id = e.department_id
+    );
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

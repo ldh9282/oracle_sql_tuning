@@ -1,0 +1,92 @@
+-- =============================================================================
+-- Join Opertaions
+-- access paths 
+-- join methods
+-- ========  nested loop join ==================================================
+-- 작은 테이블과 큰 테이블을 조인할 때, 작은 테이블을 외부 루프로 지정하고
+-- 큰 테이블을 외부 루프로 지정하여 속도향상 기대
+-- 2중(혹은 중첩) for문을 떠올리면 됨 -> 구구단
+-- 외부 루프란 바깥쪽 제일 처음 for문이고 내부 루프는 그 안의 for문을 의미
+-- 조인할 때 첫번째 테이블이 외부 루프, 두번째 테이블을 내부 루프라 말하는 것이 일반적
+-- ========  nested loop join end ==============================================
+-- ========  sort merge join ===================================================
+-- 다른 상황에선 코스트가 높은 조인이나 정렬된 테이블에서 사용하는 조인 방법
+-- 조인할 테이블들을 각각 엑세스하여 연결조건에 대하여 정렬(sort)한 후 연결조건으로 조인함
+-- 테이블의 각각 엑세스하여 각각 정렬할 때 코스트가 많이 나감
+-- 그렇지만 양쪽 다 큰 테이블인 상황에서는 당연히 nested loop join 보단 나음
+-- 한쪽이라도 작은 테이블에 대해서는 차라리 nested loop가 나을 수도 있고
+-- (둘다 작아도 여지 없이 nested loop 가 나을 수 있음
+-- time complexity 가 a * b 인데 둘이 작으면 오히려 좋음) 
+-- 둘다 보통 크기의 테이블이면 정렬할 바엔 hash join 을 사용할 수 있음
+-- hash join 은 속도는 빠르나 크기가 커지면 메모리 소모도 커져서 너무 큰 테이블에서는 안씀
+-- ========  sort merge join  end ==============================================
+-- ========  hash join =========================================================
+-- 정렬되지 않는 테이블에 대해선 효율적인 조인 방법
+-- 해쉬 조인은 처리속도가 높으나 메모리 소모가 큰편임
+-- 크기가 커지면 해쉬충돌을 방지하기 위해 해쉬 재할당이 필요하기도 해서
+-- 재할당 과정에서는 예상치 못한 소요시간이 필요함
+-- 그래서 데이터 변동이 심하지 않고 적당한 크기의 테이블에서 사용
+-- ========  hash join end =====================================================
+-- =============================================================================
+-- nested loop join ( time complexity: a * b )
+-- 힌트: use_nl(table1 table2)
+-- 힌트에 사용하는 순서가 nested loop의 순서를 강요하지 않음
+-- driving table = external table = outer table = 첫번째 루프
+-- inner table = 두번째 루프
+-- access path 순서를 강요하려면 leading 힌트를 사용해야함
+-- =============================================================================
+-- nested loop join 예시
+select * from employees e, departments d
+where e.department_id = d.department_id
+and d.department_id = 60;
+
+-- join 순서를 바꾸어도 execution plan 은 변하지 않음
+-- 옵티마이저가 작은 테이블은 외부 테이블로 선정해주기 때문임
+select * from employees e, departments d
+where d.department_id = e.department_id
+and d.department_id = 60;
+
+-- 엑세스 순서를 바꾸려면 힌트로 옵티마이저의 선택을 강요해야함
+select /*+ leading(e d)*/ * from employees e, departments d
+where d.department_id = e.department_id
+and d.department_id = 60;
+
+-- and d.department_id = 60 을 빼면
+-- 조인할 row가 많아지고
+-- row source(=table) 이 커지니까
+-- nested loop join 보다는 sort merge 조인을 택하는 옵티마이저임
+-- cost 6
+select * from employees e, departments d
+where e.department_id = d.department_id;
+
+-- 힌트로 nested loop join을 강요할 수 있음
+-- cost 14
+-- 옵티마이저를 거스르면서 성능이 더 나빠짐
+-- 따라서 확신이 있어야 사용할 것
+-- nested loop join 이 성능이 좋을 일은
+-- 그냥 데이터 규모가 작아서 애초에 쿼리성능을 신경 안써도 좋을 때인데
+-- 그럴 거면 굳이 머리를 쓸 필요도 없었다는 것.
+-- 굳이 힌트로 nl 을 쓸까? 아니올시다.
+select /*+ use_nl(d e)*/ * from employees e, departments d
+where e.department_id = d.department_id;
+
+-- 실행계획 보면 더블 nested loop 인데 
+-- 복잡할 수 있지만 단순히 오라클에서 성능을 높이기 위한 기믹임
+-- neseted loop - nested loop (departement where department_name like 'A%')
+--              \ table (employees)
+select e.employee_id, e.last_name, d.department_id, d.department_name
+from employees e, departments d
+where e.department_id = d.department_id
+and d.department_name like 'A%';
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

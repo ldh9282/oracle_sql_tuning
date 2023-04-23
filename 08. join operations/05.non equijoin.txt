@@ -1,0 +1,26 @@
+-- =============================================================================
+-- non equijoins
+-- joining key 에 대해서 = 을 쓰지 않은 조인
+-- 실행계획을 보면 access predicates 에서 = 가 아니라 >= or <= 을 사용한 것을 통해 알 수 있음
+-- non equijoins 는 성능에 좋지 못하므로 바꿀 수 있으면 equijoin 으로 바꿔라
+-- non equijoin 방식에는 = 을 쓰지 않으니 옵티마이저는 hash join method 를 선택하지 않고
+-- nested loop join 이나 sort merge join 을 택할 수 있음
+-- =============================================================================
+-- equijoin
+select * from employees e, departments d
+where e.department_id = d.department_id;
+
+-- non equijoin
+select * from employees e, jobs j
+where e.salary between j.min_salary and j.max_salary;
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

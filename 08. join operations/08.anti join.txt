@@ -1,0 +1,71 @@
+-- =============================================================================
+-- anti joins
+-- anti join 은 서브 쿼리에서 매칭되지 않은 row 을 반환함
+-- anti join 은 semin join 의 반대라고 보면 됨
+-- where not exists (sub query)
+-- not in (sub query)
+-- =============================================================================
+-- anti join
+-- where exists 방식
+select
+    *
+from
+    departments d
+where
+    not exists (
+        select
+            1
+        from
+            employees e
+        where
+            d.department_id = e.department_id
+    );
+
+-- anti join
+-- 위랑 결과 똑같음
+-- old 한 방식
+select
+    *
+from
+    departments d
+where
+    department_id not in (
+        select
+            department_id
+        from
+            employees e
+        where
+            d.department_id = e.department_id
+    );
+
+
+-- 이 경우에는 anti 조인이 안 일어나는 이유가 결국 서브쿼리의 anti join 이 일어날 적에
+-- 모든 row 에 대해서 true 니까 
+-- 옵티마이저가 full table scan 을 택하는 것임
+-- not exists 이니까 결국 employees 의 모든 row 에 대해서 false 고 아무런 데이터도 반환하지 않을것임
+-- (예외라면 department_id 의 제약조건에서 null 허용했다면 null 은 나올 수 있음)
+select
+    *
+from
+    employees e
+where
+    not exists (
+        select
+            1
+        from
+            departments d
+        where
+            d.department_id = e.department_id
+    );
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

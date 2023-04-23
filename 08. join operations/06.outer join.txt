@@ -1,0 +1,74 @@
+-- =============================================================================
+-- outer joins
+-- outer join 은 joining key 에 의해 매칭 row 와 매칭되지 않은 row 를 모두 리턴함
+-- 옵티마이저는 outer join 을 사용할 때 매칭되지 않은 row 을 만드는 기준으로 옵티마이저는
+-- sort merge join 이나 hash join 을 결정함
+-- 매칭되지 않은 row 을 만들 때 더 적은 결과를 반환할 할 수 있고 더 많은 결과를 반환 할 수 있음
+-- left 테이블의 매칭 안된 row 수 + right 테이블의 매칭 안된 row 수 = full 매칭 안된 row 수
+-- =============================================================================
+-- outer join 이 아닌 경우 매칭되는 row 만 리턴함
+-- 리턴행 106개 (joining key 에 의해 매칭되는 row)
+select * from employees e, departments d
+where e.department_id = d.department_id;
+
+
+-- 실행계획에서 옵션을 보면 outer(=left outer join) 인데
+-- 왜 right 이라 적어놓았는데 옵티마이저는 reverse 방식으로 left outer join 을 사용했을까?
+-- e > d right outer join 이나 d > e left outer join 이나 리턴은 동일한데 성능상 
+-- 그게 낫다고 옵티마이저가 선택한것임. 그래서 실행계획을 보고 혼동하면 안됨
+-- 결국 매칭되지 않은 row 는 d 에서 가져온다는 리턴은 동일함
+-- 리턴행 122개
+select * from employees e
+right outer join departments d
+on e.department_id = d.department_id;
+
+-- 실행계획과 동일하게 위의 결과를 reverse 방식으로 left outer join 을 사용한 것임
+-- 위나 아래나 리턴은 똑같음
+-- 리턴행 122개
+select * from departments d
+left outer join employees e
+on d.department_id = e.department_id;
+
+-- ansi outer join 방식
+-- 이거는 매칭되지 않은 row 은 e 에서 가져온다는 left outer join 임
+-- (+) 을 반대 위치로 봐야하는게 거지같은데 헷갈리지 말 것
+-- 리턴행 107개
+-- hash join
+select  * from employees e, departments d
+where e.department_id = d.department_id (+);
+
+-- ansi outer join 방식
+-- 이거는 매칭되는 않은 row 을 d 에서 가져오는 right outer join 임
+-- 리턴 행 122개
+-- sort merge join
+select * from employees e, departments d
+where e.department_id (+) = d.department_id ;
+
+-- 리턴 행 123개
+-- new syntax 
+-- cost 7
+select * from employees e
+full outer join departments d
+using (department_id);
+
+-- 리턴 행 123개
+-- old syntax
+-- cost 15
+select * from employees e, departments d
+where e.department_id = d.department_id (+)
+    union
+select * from employees e, departments d
+where e.department_id (+) = d.department_id;
+
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

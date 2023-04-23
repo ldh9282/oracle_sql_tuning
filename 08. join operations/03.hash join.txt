@@ -1,0 +1,54 @@
+-- =============================================================================
+-- hash join
+-- 해쉬 조인은 인덱스보다 더 빠름
+-- joining key 의 인덱스가 없을 경우 그리고 nested loop 를 사용하기에는 작은 테이블이 아닌 경우
+-- 적당한 크기의 테이블일 경우 메모리 낭비를 소모하면서 hash join 을 사용할 수 있음
+-- 정렬되지 않은 상황에서도 time complexity는 constant 임
+-- 그러나 너무 큰 테이블에서는 메모리 소모가 심함
+-- 적당한 row source 에서 hash join 을 사용하는 게 중요하고
+-- equijoin 에서 주로 사용되고 non-equijoin 에서는 유용하지 않음
+-- 왜냐하면 해쉬 테이블에 직접 일대일 대응이 되지 않기 때문임
+-- 근데 대부분 joining key 를 = 사용해서 조인하지 >, < 같이 비교 연산자(범위)를 잘 사용하지 않음
+-- 해당 조인이 non-equijoin 인지 아닌지 고려할 필요는 크게 없을 거라는 말임
+-- 조인테이블 1- 해쉬 테이블 - 조인테이블 2
+-- 조인할 테이블들 사이의 해쉬 테이블(혹은 해쉬 함수라고 생각해도됨) 껴서
+-- 아무리 테이블이 커도 정렬이 안되어도 constant 로 가져올 수 있음
+-- 그러나 달리 생각해보면 조인 결과의 row source(=여기선 해쉬 테이블)이 별도로 추가되니까
+-- 메모리 소모가 크다는 것을 알 수 있음. 그래서 테이블 규모가 너무 크지 않을 때 사용해야함
+-- hash function 이라는 개념이 space complexity 를 희생해서 time complexity 를 이득보는 것임
+-- 조인할 테이블들의 rowid가 key 값이고 join 한 row 가 value 라고 보면됨
+-- 해쉬 조인 안에서 테이블의 순서는 중요하지 않음. 두개 테이블의 rowid를 합쳐서 key로 사용하는것이기 때문임
+-- key 값으로 해쉬함수를 돌리면 해쉬코드가 나오는데
+-- 이 해쉬코드를 통해 메모리 순서없이 랜덤하게 흩뿌려져있는 매핑된 값을 가져올 수 있음.
+-- 그러나 메모리 순서가 있다는 것은 결국 메모리를 컴팩트하게 아낀다는 것인데
+-- 해쉬방식은 랜덤하게(널널하게) 흩뿌려진 값을 constant time 으로 가져올 수 있는 대신에 메모리를 포기한 것임 
+-- 힌트: use_hash(table1 table2)
+-- =============================================================================
+-- 당연히 d 테이블이 작으니 조인할 때 nested loop join 인데
+select * from employees e, departments d
+where e.department_id = d.department_id
+and d.manager_id = 200;
+
+-- 힌트로 옵티마이저의 선택을 hash join 으로 강요하면
+-- 해쉬 조인을 사용할 수 있음
+-- 이 경우에는 cost 가 4에서 7로 늘어남
+select /*+  use_hash(d e)*/ * from employees e, departments d
+where e.department_id = d.department_id
+and d.manager_id = 200;
+
+-- 해쉬 조인의 순서를 달리해도 7임. 해쉬 조인에서 엑세스하는 테이블 순서는 상관 없음
+select /*+  leading(e d) use_hash(e d)*/ * from employees e, departments d
+where e.department_id = d.department_id
+and d.manager_id = 200;
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';
