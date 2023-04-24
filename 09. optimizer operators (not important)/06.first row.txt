@@ -1,0 +1,42 @@
+-- =============================================================================
+-- first row
+-- min 혹은 max를 홀로 사용할 때 인덱스로 정렬하여 첫번째 row 만 스캔
+-- =============================================================================
+-- frist row 
+-- index range scan (min/max)
+-- cadinality : 1
+select min(employee_id) from employees where employee_id < 140;
+
+-- frist row 
+-- index range scan (min/max)
+-- cadinality : 1
+select max(employee_id) from employees where employee_id < 140;
+
+-- index full scan (min/max)
+-- cadinality : 1 
+select min(employee_id) from employees;
+
+-- min 과 max 동시에 쓰면 first row 를 scan하지 않음
+-- index range scan
+-- cadinality : 40 (40개 모두 스캔함)
+select min(employee_id), max(employee_id) from employees where employee_id < 140;
+
+-- min 과 max 동시에 쓰면 first row 를 scan하지 않음
+-- index full scan
+-- cadinality : 40
+select min(employee_id), max(employee_id) from employees;
+
+-- 인덱스가 없어서 first row 를 scan 을 하지 못함
+-- 그리고 인덱스가 없을 때 min / max 를 쓰면 성능이 떨어짐 
+select min(commission_pct) from employees where commission_pct < 0.1;
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

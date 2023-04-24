@@ -1,0 +1,19 @@
+-- =============================================================================
+-- filter
+-- =============================================================================
+-- filter
+-- filter predicates: min(salary) < 10000
+select min(salary), department_id from employees
+group by department_id
+having min(salary) < 10000;
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

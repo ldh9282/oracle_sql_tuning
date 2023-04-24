@@ -1,0 +1,24 @@
+-- =============================================================================
+-- inlist iterator
+-- in 구절에 not too many values 가 있을 때
+-- =============================================================================
+-- inlist iterator
+select * from employees where employee_id in (100, 110, 146);
+-- inlist iterator
+select * from employees where employee_id = 100 or
+                              employee_id = 110 or
+                              employee_id = 146;
+-- full table scan (in 구절에 너무 많은 values 가 있을 때)
+select * from employees where employee_id in (select employee_id from employees);
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

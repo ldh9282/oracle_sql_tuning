@@ -1,0 +1,32 @@
+-- =============================================================================
+-- union : 중복제거
+-- union all : 중복 제거하지 않음
+-- union 은 sort 를 해서 unique 를 체크하기 때문에 union all 보다 cost 가 높음
+-- 그래서 중복이 없다는 확신이 있으면 union all 을 사용해야함
+-- 그러나 index 가 있어서 정렬할 때 index 를 사용한다면
+-- union 의 sort의 cost 를 걱정하지 않아도 됨
+-- =============================================================================
+
+-- cost 7
+-- union
+-- sort unique
+select * from employees where department_id = 80
+union
+select * from employees where first_name like 'A%';
+
+-- cost 5
+-- union-all
+select * from employees where department_id = 80
+union all
+select * from employees where first_name like 'A%';
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

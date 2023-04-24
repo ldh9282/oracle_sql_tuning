@@ -1,0 +1,20 @@
+-- =============================================================================
+-- count stopkey
+-- read rows by rownum
+-- =============================================================================
+-- count stopkey
+select * from employees where rownum < 11;
+-- count stopkey
+select * from employees where rownum < 11 order by employee_id desc; 
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

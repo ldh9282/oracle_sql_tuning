@@ -1,0 +1,33 @@
+-- =============================================================================
+-- minus
+-- =============================================================================
+
+
+-- minus
+-- cost 6
+select * from employees where employee_id between 145 and 179
+minus
+select * from employees where first_name like 'A%';
+
+-- cost 5
+select * from employees e1 where employee_id between 145 and 179
+and not exists (
+    select 1 from employees e2 where e1.employee_id = e2.employee_id and e2.first_name like 'A%'
+);
+
+-- cost 2
+select * from employees e1 where employee_id between 145 and 179
+and first_name not like 'A%';
+
+
+-- =============================================================================
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';
