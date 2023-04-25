@@ -1,0 +1,41 @@
+-- =============================================================================
+-- getting execution plan and statistics
+
+-- execution plan (실제) vs explain plan (추정) 
+
+-- 비슷하지만 차이점이 있음
+
+-- execution plan 은 실행된 쿼리의 실제 실행 정보를 보여주며, 
+-- explain plan 은 쿼리 실행 전에 예측되는 실행 계획을 보여줍니다. 
+-- 둘 다 쿼리 실행 계획을 확인하여 데이터베이스 성능 최적화에 도움을 주지만, 
+-- execution plan이 보다 상세하고 정확한 정보를 제공합니다.
+-- 그냥 execution plan 만 보면 됨.
+
+
+-- there are 4 major tools to get the execution plan and the statistics
+
+-- autotrace (sqlplus 에서 하드코딩 할것도 아니고 이전에 봤는데 쓸모 없더라)
+-- dbms_xplan (explain plan 보는 건데 마찬가지로 쓸모 없는 거 같음)
+-- sql monitor (실행하는데 걸리는 시간이 5초이상 쿼리만 모니터링에 잡히고, 혹은 monitor 힌트를 써주면 5초 아니어도 잡힘)
+-- tkprof (sql trace file 을 실행할 때 사용, sql 모니터링은 실시간인데 tkprof(발음;티케이프로프) 은 trace file 에 sql 을 기록한 것을 보는 방법)
+-- (trace file 을 어떻게 만드는지, 그리고 trace file을 어떻게 실행하는지가 관건임)
+
+
+-- autotrace 
+-- 근데 sql developer 나 orange oracle 에서 실행계획 툴을 이용할 수 있으니까
+-- 굳이 명령어로 하드하게 볼 필요가 있나 싶다
+
+-- dbms_xplan 
+-- 마찬가지로 쓸모없는 거 같음.
+-- explain plan 을 볼 때는 얼마나 statistics 이 오래될 때 execution plan 과 비교하면서 차이의 정도를  알아보는 건데
+-- 그걸 개발자가 statistics 을 update 하는 일은 없을 거고.. dba 영역임
+
+-- sql monitor
+-- 개발자가 쿼리실행 시간이 5초이상 긴거 실행하면 dba 가 모니터링 툴로 감시할 수 있다는 정도만 알면 될 것 같음
+-- dba 면 모니터링 툴을 이용할까 싶은데 권한없는 개발자가 모니터링 툴을 굳이... 성능개선만 할 줄 알면 되지...
+-- 별로 실전에서 실용성 있는지는 모르겠음
+
+-- sql trace file
+-- 어떤 쿼리를 실행했는지 로그 보듯이 있을 수도 있겠지. 어떤 사건이 터져서 상황을 파악할 필요가 있다면...
+-- 키워드 정도는 기억해두면 좋을 거 같음
+-- =============================================================================

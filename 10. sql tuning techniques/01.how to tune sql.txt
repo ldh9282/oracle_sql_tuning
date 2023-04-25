@@ -1,0 +1,24 @@
+-- =============================================================================
+-- sql tuning techniques
+
+-- execution plan 을 보아라
+-- 거기서 access paths 를 보아라
+-- 거기서 join orders 와 join method 을 보아라
+-- 실제와 추정 row 개수를 비교해라 
+-- (차이가 많이 나면 statistics 를 update 해야함. 근데 DBA 영역임)
+-- =============================================================================
+-- bad sql
+
+-- index 를 사용하지 않은 것
+-- index 가 없는 것
+-- wrong join order
+-- wrong join type
+-- =============================================================================
+-- possible solutions
+
+-- statistics 을 update 해라
+-- create or modify indexes
+-- index 을 사용하도록 query 를 다시 짜라
+-- 인덱스가 사용하지 못하는 data type conversion 을 제거해라
+-- index based function 을 이용해라
+-- =============================================================================
