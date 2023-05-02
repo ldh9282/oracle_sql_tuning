@@ -1,0 +1,50 @@
+-- =============================================================================
+-- like operators 을 사용할 때
+-- like 'A%' 는 옵티마이저가 인덱스를 사용할 수 있어도
+-- like '%A' 는 옵티마이저가 인덱스를 사용할 수 없음
+-- 와일드 카드를 마지막에 써야함
+-- 아니면 reverse(last_name) like 'A%' 를 사용하면
+-- last_name like '%A' 와 동일한 return row 을 가지면서
+-- 옵티마이저가 인덱스를 사용할 수 있게 할 수 있음
+-- 그치만 reverse 에 대한 cost 도 있긴 한데 그것보다 문제가
+-- reverse 에 대한 인덱스도 추가적으로 필요함
+-- =============================================================================
+-- full table scan
+-- cost 3
+select * from employees where last_name like '%on';
+
+-- full table scan
+-- cost 3
+select * from employees where last_name like '%on%';
+
+-- index range scan
+-- cost 2
+select * from employees where last_name like 'Ba%';
+
+-- reverse 에 대한 index 를 만들지 않을 경우
+-- full table scan
+select * from employees where reverse(last_name) like 'no%';
+
+-- reverse(last_name) 에 대한 index 생성
+create index last_name_reverse_index on employees(reverse(last_name));
+
+-- index range scan 
+-- cost 2
+select * from employees where reverse(last_name) like 'no%';
+
+-- 확인 했으면 인덱스 삭제하자
+drop index last_name_reverse_index;
+
+-- =============================================================================
+
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

@@ -1,0 +1,30 @@
+-- =============================================================================
+-- 복합키로 인덱스를 구성한 경우
+-- || 대신에 concatenation operator 를 사용해라
+-- first_name || last_name == 'StevenKing' 대신에
+-- first_name = 'Steven' and last_name = 'King' 을 사용해야함
+-- =============================================================================
+-- full table scan
+-- cost 3
+select employee_id, first_name, last_name, salary
+from employees
+where first_name || last_name = 'StevenKing';
+
+-- index range scan
+-- cost 2
+select employee_id, first_name, last_name, salary
+from employees
+where first_name = 'Steven' and last_name = 'King';
+-- =============================================================================
+
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

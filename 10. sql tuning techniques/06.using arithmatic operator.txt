@@ -1,0 +1,29 @@
+-- =============================================================================
+-- arithmetic operators 을 사용할 때
+-- index column 에 arithmetic operator 을 직접 사용하면 옵티마이저가 인덱스를 사용하지 못함
+-- index column 에 변형을 가하면 안됨
+-- =============================================================================
+-- full table scan
+-- cost 3
+select * from employees where employee_id + 10 = 210;
+
+-- index unique scan
+-- cost 1
+select * from employees where employee_id = 200;
+
+-- index unique scan
+-- cost 1
+select * from employees where employee_id = 210 - 10;
+-- =============================================================================
+
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, c.column_position, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

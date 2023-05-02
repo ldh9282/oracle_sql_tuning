@@ -1,0 +1,82 @@
+-- =============================================================================
+-- how do i make the optimizer use my indexes
+-- row source 가 큰 경우 인덱스의 사용이 성능을 개선시킬 수 있다
+-- 그러나 return row 가 큰 경우 옵티마이저는 index 를 사용하지 않을 수 있다
+-- 옵티마이저가 그러는 데는 이유가 있다. 옵티마이저는 신이다.
+-- selectivity 가 30% 이상이면 테스트해서 눈으로 보기 전까지 index 힌트를 사용하지 말아라
+-- =============================================================================
+-- index unique scan
+select * from employees where employee_id = 200;
+
+-- full table scan
+-- 테이블의 거의 전체의 데이터를 가져오니까 인덱스를 사용하지 않는 것임
+select * from employees where employee_id != 200;
+
+-- full table scan
+-- 테이블의 거의 전체의 데이터를 가져오니까 인덱스를 사용하지 않는 것임
+select * from employees where employee_id <= 200;
+
+-- index range scan
+-- selectivity 가 일정 수준으로 낮아지면 옵티마이저는 index range scan 을 택할 것임
+select * from employees where employee_id < 200;
+
+-- 이 쿼리를 성능 개선 시킬 수 있을까?
+-- cost 9
+select
+    e.employee_id,
+    e.last_name,
+    e.job_id,
+    e.manager_id,
+    d.department_name,
+    d.department_id,
+    c.country_name
+from
+    employees e,
+    departments d,
+    locations l,
+    countries c
+where
+    e.department_id = d.department_id
+    and d.location_id = l.location_id
+    and l.country_id = c.country_id
+    and e.employee_id between 120 and 199;
+
+-- 만약 employee_id 120 ~ 199 번이
+-- department_id 50 과 80 에만 있다는 걸 나만 알고
+-- 옵티마이저는 모를 수 있다.
+-- cost 5
+-- department_id 로 조인(access predicates)할 적에
+-- filter predicates 으로 department_id = 50 or department_id = 80 인 것을 추출함
+-- employees 와 departments 을 join 할 적에 매칭되는 row source 가 줄어듬
+select
+    e.employee_id,
+    e.last_name,
+    e.job_id,
+    e.manager_id,
+    d.department_name,
+    d.department_id,
+    c.country_name
+from
+    employees e,
+    departments d,
+    locations l,
+    countries c
+where
+    e.department_id = d.department_id
+    and d.location_id = l.location_id
+    and l.country_id = c.country_id
+    and e.employee_id between 120 and 199
+    and e.department_id in (50, 80);
+-- =============================================================================
+
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';

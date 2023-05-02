@@ -1,0 +1,40 @@
+-- =============================================================================
+-- Do not use seelct *
+-- select * 는 더 많은 I/O cost 를 야기한다
+-- cpu cost + i/o cost 가 총 cost 인데 i/o cost 가 대부분을 차지할 만큼 큰 영역이다.
+-- 뿐만 아니라 불필요한 컬럼들 때문에 옵티마이저는 worse execution plan 을 선택할 수도 있다.
+-- 그리고 성능뿐만 아니라 select * 는 실제로 사용하는 컬럼들이 모호해서 유지보수의 문제가 생긴다.
+-- 그러나 장점이 있다면 초기 개발 당시의 유연성과 편의성이 있다.
+-- 테이블 컬럼이 변경되고 사용하는 컬럼도 변경될 때 select * 에 의해 쿼리를 변경하지 않아도 되며
+-- 적어야할 컬럼이 많은 경우 작성해야할 쿼리길이도 줄어들 수 있다.
+-- 초기 개발이 완료가 되고 코드를 개선할 여유가 있으면 select * 를 수정해야한다.
+-- =============================================================================
+-- i/o table full sacn
+-- i/o cost: 3
+select * from employees;
+
+-- index fast full scan
+-- i/o cost: 2
+select employee_id, first_name from employees;
+
+-- i/o table full sacn
+-- i/o cost: 3
+-- salary 는 인덱스가 없어서 table full scan 일어남
+-- 인덱스가 있는 컬럼만 가져올 때는 확실히 select * 를 기재하면 안되지만
+-- 굳이 인덱스 없는 컬럼도 가져올 때 select * 를 무조건 해서는 안될 이유는 없다고 본다
+-- 왜 사용해서는 안되는지 이유를 알아야한다.
+-- 이런 경우에는 적어도 성능 때문이라고 얘기하면 안된다.
+select employee_id, first_name, salary from employees;
+-- =============================================================================
+
+-- hr 소유의 employees 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'EMPLOYEES';
+
+-- hr 소유의 departments 테이블의 인덱스 조회
+select c.column_name, i.*
+from all_indexes i, all_ind_columns c
+where i.index_name = c.index_name
+and i.owner = 'HR' and i.table_name = 'DEPARTMENTS';
